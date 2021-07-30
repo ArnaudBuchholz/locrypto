@@ -4,6 +4,7 @@
   </head>
   <body>
     <input id="key" type="password" placeholder="&#128273; Type or drag & drop a file...">
+    <span id="length"></span>
     <button id="encrypt">&#128272;</button><br/>
     <textarea id="message" cols="80" rows="20"></textarea>
 
@@ -32,12 +33,20 @@ function onDrop (callback, event) {
   }
 }
 
+function setLength (length) {
+  
+}
+
 keyInput.addEventListener('drop', onDrop.bind(null, (file, buffer) => {
   keyBuffer = buffer
   keyInput.setAttribute('type', 'text')
   keyInput.setAttribute('readonly', 'true')
-  keyInput.value = `\ud83d\udcbe ${file.name} (${buffer.byteLength})`
+  keyInput.value = `\ud83d\udcbe ${file.name}`
+  byId('length').value = buffer.byteLength
 }))
+keyInput.addEventListener('input', () => {
+  byId('length').innerHTML = keyInput.value.length
+})
 
 byId('encrypt').addEventListener('click', async () => {
   if (!keyBuffer) {
@@ -46,7 +55,7 @@ byId('encrypt').addEventListener('click', async () => {
   }
   const key = await crypto.subtle.importKey(
     'raw',
-    keyBuffer,
+    keyBuffer.slice(0, 32),
     "AES-CTR",
     false,
     ['encrypt', 'decrypt']
