@@ -1,0 +1,71 @@
+<html>
+  <head>
+    <title>&#128584;&#128585;&#128586;</title>
+  </head>
+  <body>
+    <input id="key" type="password" placeholder="&#128273; Type or drag & drop a file...">
+    <button id="encrypt">&#128272;</button><br/>
+    <textarea id="message" cols="80" rows="20"></textarea>
+
+    <script language="javascript">
+'use strict'
+
+document.body.addEventListener('load', () => {
+  if (window?.crypto?.subtle === undefined) {
+    alert('Cryptographic helper not detected')
+  }
+})
+      
+const byId = id => document.getElementById(id)
+const keyInput = byId('key')
+let keyBuffer
+
+function onDrop (callback, event) {
+  event.preventDefault()
+  if (event.dataTransfer.types.includes('Files')) {
+    const file = event.dataTransfer.files[0]
+    const reader = new FileReader()
+    reader.onload = () => {
+      callback(file, reader.result)
+    }
+    reader.readAsArrayBuffer(file)
+  }
+}
+
+keyInput.addEventListener('drop', onDrop.bind(null, (file, buffer) => {
+  keyBuffer = buffer
+  keyInput.setAttribute('type', 'text')
+  keyInput.setAttribute('readonly', 'true')
+  keyInput.value = `\ud83d\udcbe ${file.name} (${buffer.byteLength})`
+}))
+
+byId('encrypt').addEventListener('click', async () => {
+  if (!keyBuffer) {
+    const encoder = new TextEncoder()
+    keyBuffer = encoder.encode(keyInput.value)
+  }
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyBuffer,
+    "AES-CTR",
+    false,
+    ['encrypt', 'decrypt']
+  )
+  const message = byId('message').value
+  const encoder = new TextEncoder()
+  const messageBuffer = encoder.encode(message)
+  let counter = window.crypto.getRandomValues(new Uint8Array(16));
+  const crypted = await window.crypto.subtle.encrypt(
+    {
+      name: "AES-CTR",
+      counter,
+      length: 64
+    },
+    key,
+    messageBuffer
+  )
+})
+
+      </script>
+  </body>
+</html>
