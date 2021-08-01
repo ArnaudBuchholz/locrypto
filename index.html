@@ -33,38 +33,42 @@ function onDrop (callback, event) {
   }
 }
 
-function setLength (length) {
-  
-}
-
 keyInput.addEventListener('drop', onDrop.bind(null, (file, buffer) => {
   keyBuffer = buffer
   keyInput.setAttribute('type', 'text')
   keyInput.setAttribute('readonly', 'true')
-  keyInput.value = `\ud83d\udcbe ${file.name}`
-  byId('length').value = buffer.byteLength
+  keyInput.value = `\ud83d\udcbe ${file.name} ${buffer.byteLength}`
 }))
-keyInput.addEventListener('input', () => {
-  byId('length').innerHTML = keyInput.value.length
-})
+
+function toBuffer (text) {
+  const encoder = new TextEncoder()
+  return encoder.encode(text)
+}
 
 byId('encrypt').addEventListener('click', async () => {
   if (!keyBuffer) {
-    const encoder = new TextEncoder()
-    keyBuffer = encoder.encode(keyInput.value)
+    keyBuffer = toBuffer(keyInput.value)
+  }
+  let finalKey
+  let keyAddendum
+  if (keyBuffer.byteLength < 32) {
+    keyAddendum = window.crypto.getRandomValues(new Uint8Array(32 - keyBuffer.byteLength))
+    finalKey = new Uint8Array(32)
+    finalKey.set(keyBuffer)
+    finalKey.set(keyAddendum, keyBuffer.byteLength)
+  } else {
+    finalKey = keyBuffer.slice(0, 32)
   }
   const key = await crypto.subtle.importKey(
     'raw',
-    keyBuffer.slice(0, 32),
+    finalKey,
     "AES-CTR",
     false,
-    ['encrypt', 'decrypt']
+    ['encrypt']
   )
-  const message = byId('message').value
-  const encoder = new TextEncoder()
-  const messageBuffer = encoder.encode(message)
-  let counter = window.crypto.getRandomValues(new Uint8Array(16));
-  const crypted = await window.crypto.subtle.encrypt(
+  const messageBuffer = toBuffer(byId('message').value)
+  let counter = window.crypto.getRandomValues(new Uint8Array(16))
+  const cryptedBuffer = await window.crypto.subtle.encrypt(
     {
       name: "AES-CTR",
       counter,
@@ -73,7 +77,54 @@ byId('encrypt').addEventListener('click', async () => {
     key,
     messageBuffer
   )
+  const blobParts = [counter, cryptedBuffer]
+  if (keyAddendum) {
+    blobParts.unshift(keyAddendum)
+  }
+  const blob = new Blob(blobParts)
+  const blobUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = blobUrl
+  anchor.target = '_blank'
+  anchor.download = 'secret.dat'
+  anchor.click()
+  URL.revokeObjectURL(blobUrl)
 })
+
+byId('message').addEventListener('drop', onDrop.bind(null, async (file, buffer) => {
+  if (!keyBuffer) {
+    keyBuffer = toBuffer(keyInput.value)
+  }
+  let offset = 0
+  let finalKey
+  if (keyBuffer.byteLength < 32) {
+    offset = 32 - keyBuffer.byteLength
+    finalKey = new Uint8Array(32)
+    finalKey.set(keyBuffer)
+    finalKey.set(new Uint8Array(buffer.slice(0, offset)), keyBuffer.byteLength)
+  } else {
+    finalKey = keyBuffer.slice(0, 32)
+  }
+  const key = await crypto.subtle.importKey(
+    'raw',
+    finalKey,
+    "AES-CTR",
+    false,
+    ['decrypt']
+  )
+  const counter = buffer.slice(offset, offset + 16)
+  offset += 16
+  const decryptedBuffer = await window.crypto.subtle.decrypt(
+    {
+      name: "AES-CTR",
+      counter,
+      length: 64
+    },
+    key,
+    buffer.slice(offset)
+  )
+  byId('message').value = new TextDecoder().decode(decryptedBuffer)
+}))
 
       </script>
   </body>
