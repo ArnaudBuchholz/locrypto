@@ -1,13 +1,12 @@
 {
   "name": "locrypto",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Simple crypto algorithm leveraging browsers' Crypto.subtle API",
   "scripts": {
     "start": "reserve"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Arnaud Buchholz",
+  "license": "MIT",
   "dependencies": {
     "reserve": "^1.11.4"
   }
