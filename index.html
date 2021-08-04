@@ -1,27 +1,39 @@
 <html>
   <head>
     <title>LoCrypto</title>
+    <style>
+input {
+  width: 30%;
+}
+
+span {
+  color: gray;
+}
+
+textarea {
+  width: 100%;
+  margin-top: .5rem;
+}
+
+.encrypting {
+  background-color: darkgrey;
+}
+    </style>
   </head>
   <body>
-    <input id="key" type="password" style="width: 30%;" placeholder="Type &#128273; or drag & drop a &#128273; file...">
+    <input id="key" type="password" placeholder="Type &#128273; or drag & drop a &#128273; file...">
     <button id="encrypt">&#128272;</button>
-    <span style="color: gray;">&#11013; click to encrypt</span>
+    <span>&#11013; click to encrypt</span>
     <br/>
-    <textarea id="message" rows="20" style="width: 100%; margin-top: .5rem;" placeholder="Type the message to encrypt or drag & drop the file to decrypt"></textarea>
-
+    <textarea id="message" rows="20" placeholder="Type the message to encrypt or drag & drop the file to decrypt"></textarea>
     <script language="javascript">
-'use strict'
-
-document.body.addEventListener('load', () => {
+window.addEventListener('load', () => {
   if (window?.crypto?.subtle === undefined) {
     alert('Cryptographic helper not detected')
+    location = 'https://developer.mozilla.org/en-US/docs/Web/API/Crypto/subtle'
   }
 })
       
-const byId = id => document.getElementById(id)
-const keyInput = byId('key')
-let keyBuffer
-
 function onDrop (callback, event) {
   event.preventDefault()
   if (event.dataTransfer.types.includes('Files')) {
@@ -33,6 +45,11 @@ function onDrop (callback, event) {
     reader.readAsArrayBuffer(file)
   }
 }
+
+const byId = id => document.getElementById(id)
+
+const keyInput = byId('key')
+let keyBuffer
 
 keyInput.addEventListener('drop', onDrop.bind(null, (file, buffer) => {
   keyBuffer = buffer
@@ -46,7 +63,11 @@ function toBuffer (text) {
   return encoder.encode(text)
 }
 
-byId('encrypt').addEventListener('click', async () => {
+const message = byId('message')
+let filename = 'secret.dat'
+
+async function encrypt () {
+  message.setAttribute('class', 'encrypting')
   if (!keyBuffer) {
     keyBuffer = toBuffer(keyInput.value)
   }
@@ -67,7 +88,7 @@ byId('encrypt').addEventListener('click', async () => {
     false,
     ['encrypt']
   )
-  const messageBuffer = toBuffer(byId('message').value)
+  const messageBuffer = toBuffer(message.value)
   let counter = window.crypto.getRandomValues(new Uint8Array(16))
   const cryptedBuffer = await window.crypto.subtle.encrypt(
     {
@@ -87,12 +108,33 @@ byId('encrypt').addEventListener('click', async () => {
   const anchor = document.createElement('a')
   anchor.href = blobUrl
   anchor.target = '_blank'
-  anchor.download = 'secret.dat'
+  anchor.download = filename
   anchor.click()
   URL.revokeObjectURL(blobUrl)
+  message.removeAttribute('class')
+}
+
+byId('encrypt').addEventListener('click', encrypt)
+
+let isControlPressed = false
+document.addEventListener('keyup', event => {
+  if (event.keyCode === 17) {
+    isControlPressed = false
+  }
 })
 
-byId('message').addEventListener('drop', onDrop.bind(null, async (file, buffer) => {
+document.addEventListener('keydown', event => {
+  if (event.keyCode === 17) {
+    isControlPressed = true
+  }
+  if (event.keyCode === 83 && isControlPressed) {
+    event.preventDefault()
+    encrypt()
+  }
+})
+
+message.addEventListener('drop', onDrop.bind(null, async (file, buffer) => {
+  filename = file.name
   if (!keyBuffer) {
     keyBuffer = toBuffer(keyInput.value)
   }
@@ -124,7 +166,7 @@ byId('message').addEventListener('drop', onDrop.bind(null, async (file, buffer) 
     key,
     buffer.slice(offset)
   )
-  byId('message').value = new TextDecoder().decode(decryptedBuffer)
+  message.value = new TextDecoder().decode(decryptedBuffer)
 }))
 
       </script>
