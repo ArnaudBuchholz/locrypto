@@ -8,6 +8,6 @@
   "author": "Arnaud Buchholz",
   "license": "MIT",
   "dependencies": {
-    "reserve": "^1.11.4"
+    "reserve": "^1.12.1"
   }
 }
