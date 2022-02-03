@@ -144,7 +144,7 @@ async function encrypt () {
     ['encrypt']
   )
 
-  const messageBuffer = toBuffer($message.value)
+  const messageBuffer = toBuffer($message.innerHTML)
   let counter = window.crypto.getRandomValues(new Uint8Array(16))
   const cryptedBuffer = await window.crypto.subtle.encrypt(
     {
