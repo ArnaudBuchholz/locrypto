@@ -31,7 +31,18 @@ input[type=password], input[type=text] {
 .hide {
   display: none;
 }
-    </style>
+
+#message:empty {
+  border: 1px dashed gray;
+  text-align: center;
+  padding: 3rem;
+}
+
+#message:empty::before {
+  content: 'Type the message to encrypt or drag & drop the file to decrypt'
+}
+
+</style>
   </head>
   <body>
     <div class="settings">
@@ -40,9 +51,7 @@ input[type=password], input[type=text] {
       <label for="expand">PBKDF2</label>
       <button id="encrypt" title="click to encrypt">&#128272;</button>
     </div>
-    <div id="$message" contenteditable>
-      Type the $message to encrypt or drag & drop the file to decrypt
-    </div>
+    <div id="message" contenteditable></div>
     <script language="javascript">
 
 window.addEventListener('load', () => {
@@ -196,7 +205,7 @@ $message.addEventListener('drop', onDrop.bind(null, async (file, buffer) => {
     key,
     buffer.slice(offset)
   )
-  $message.value = new TextDecoder().decode(decryptedBuffer)
+  $message.innerHTML = new TextDecoder().decode(decryptedBuffer)
 }))
 
       </script>
